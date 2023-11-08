@@ -1,7 +1,7 @@
 # Papers and Resources related to INR
 
 ## Vanilla INR papers
-[Fourier Features Let Networks Learn High Frequency Functions in Low Dimensional Domains](https://bmild.github.io/fourfeat/) - *Matthew Tancik, Pratul P. Srinivasan, Ben Mildenhall, Sara Fridovich-Keil, Nithin Raghavan, Utkarsh Singhal, Ravi Ramamoorthi, Jonathan T. Barron, Ren Ng, NeurIPS 2020*
+* [Fourier Features Let Networks Learn High Frequency Functions in Low Dimensional Domains](https://bmild.github.io/fourfeat/) - *Matthew Tancik, Pratul P. Srinivasan, Ben Mildenhall, Sara Fridovich-Keil, Nithin Raghavan, Utkarsh Singhal, Ravi Ramamoorthi, Jonathan T. Barron, Ren Ng, NeurIPS 2020*
 * [Implicit Neural Representations with Periodic Activation Functions](https://www.vincentsitzmann.com/siren/) - *Sitzmann, Vincent, et al., NeurIPS 2020*
 
 ## Meta learning for Coordinate based INR
