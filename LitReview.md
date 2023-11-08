@@ -6,4 +6,6 @@
 
 ## Meta learning for Coordinate based INR
 * [Learned Initializations for Optimizing Coordinate-Based Neural Representations](https://www.matthewtancik.com/learnit) - *Matthew Tancik, Ben Mildenhall, Terrance Wang, Divi Schmidt, Pratul P. Srinivasan, Jonathan T. Barron, Ren Ng, CVPR 2021*
+* [Transformers as Meta-Learners for Implicit Neural Representations](https://yinboc.github.io/trans-inr/) - *Yinbo Chen, Xiaolong Wang, European Conference on Computer Vision 2022*
+
 
