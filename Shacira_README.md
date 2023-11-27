@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # SHACIRA: Scalable HAsh-grid Compression for Implicit Neural Representations (ICCV 2023)
 
 Official code for our [paper](https://openaccess.thecvf.com/content/ICCV2023/papers/Girish_SHACIRA_Scalable_HAsh-grid_Compression_for_Implicit_Neural_Representations_ICCV_2023_paper.pdf) <br>
@@ -65,3 +66,7 @@ For the lego scene from the [original NeRF dataset](https://drive.google.com/dri
 python3 app/nerf/main_nerf.py --config app/nerf/configs/nerf_latents.yaml --dataset-path /path/to/lego
 ```
 
+=======
+# Meta-Learning-Based-INR-
+Meta Learning Based INR combined with Grid Based INR for CMSC828I final Project
+>>>>>>> origin/Shacira-base-code
