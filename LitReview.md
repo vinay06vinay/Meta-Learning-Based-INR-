@@ -10,6 +10,7 @@
 
 ## Feature Grid based INR:
 * [SHACIRA: Scalable HAsh-grid Compression for Implicit Neural Representations](https://shacira.github.io/) - *Sharath Girish, Abhinav Shrivastava, Kamal Gupta, Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV), October 2023, Pages 17513-17524*
+* [SHACIRA with Full Supplmentary Material](https://arxiv.org/pdf/2309.15848v1.pdf) - *Sharath Girish, Abhinav Shrivastava, Kamal Gupta, Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV), October 2023, Pages 17513-17524*
 * [Instant Neural Graphics Primitives with a Multiresolution Hash Encoding](https://nvlabs.github.io/instant-ngp/) - *Thomas Müller, Alex Evans, Christoph Schied, Alexander Keller, ACM Transactions on Graphics (TOG), Volume 41, Number 4, July 2022, Article 102, Pages 102:1-102:15*
 
 
