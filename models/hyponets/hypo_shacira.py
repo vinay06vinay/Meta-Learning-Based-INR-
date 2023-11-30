@@ -93,6 +93,12 @@ class HypoShacira(torch.nn.Module):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.pipeline = load_neural_pipeline(self.device)
         self.param_shapes = dict()
-        for name, param in self.pipeline.named_parameters():
-            print(name, param.shape)  
-             
+        for i, (name, param) in enumerate(self.pipeline.named_parameters()):
+            self.param_shapes[f'wb{i}'] = param.shape
+        self.params = None
+    def set_params(self, params):
+        self.params = params
+    def forward(self, x):
+        for i, (name, param) in enumerate(self.pipeline.named_parameters()):
+            param.data = self.params[f'wb{i}'].data
+        return self.pipeline(x)             

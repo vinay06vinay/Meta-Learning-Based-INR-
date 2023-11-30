@@ -10,14 +10,18 @@ from models import register
 
 
 def init_wb(shape):
+    if shape[0] == 1:
+        # Change the shape of the weight to (2, shape[1])
+        shape[0] = torch.Size([2])
     weight = torch.empty(shape[1], shape[0] - 1)
     nn.init.kaiming_uniform_(weight, a=math.sqrt(5))
 
     bias = torch.empty(shape[1], 1)
     fan_in, _ = nn.init._calculate_fan_in_and_fan_out(weight)
-    bound = 1 / math.sqrt(fan_in) if fan_in > 0 else 0
+    bound = 1 / math.sqrt(fan_in) if fan_in > 0 else 1e-5
     nn.init.uniform_(bias, -bound, bound)
-
+    print(weight.shape)
+    print(bias.shape)
     return torch.cat([weight, bias], dim=1).t().detach()
 
 
@@ -37,8 +41,11 @@ class TransInr(nn.Module):
         self.wtoken_rng = dict()
         for name, shape in self.hyponet.param_shapes.items():
             self.base_params[name] = nn.Parameter(init_wb(shape))
+            print(self.base_params[name].shape)
             g = min(n_groups, shape[1])
             assert shape[1] % g == 0
+            if shape[0] == 1:
+                shape[0] = torch.Size([2])
             self.wtoken_postfc[name] = nn.Sequential(
                 nn.LayerNorm(dim),
                 nn.Linear(dim, shape[0] - 1),
