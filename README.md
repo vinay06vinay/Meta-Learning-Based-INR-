@@ -30,4 +30,7 @@ If people are trying brute forcing and considering all parameters for meta learn
 
 
 
-**Note** This is a very small and high level list if you guys get stuck around some point add those tasks if you aren't free to do it.
+# <span style="font-size: larger;">***__Note__***</span>
+
+<span style="font-size: larger;"><strong><em><u>This is a very small and high level list</u></em></strong> If you guys get stuck around some point, add those tasks if you aren't free to do it.</span>
+
