@@ -1,0 +1,13 @@
+Metadata-Version: 2.1
+Name: wisp
+Version: 0.1.0
+Summary: Kaolin-Wisp: A PyTorch library for performing research on neural fields
+Home-page: https://github.com/NVIDIAGameWorks/kaolin-wisp
+Author: Towaki Takikawa
+License: NVIDIA Source Code License
+Platform: UNKNOWN
+Requires-Python: >=3.8
+License-File: LICENSE
+
+UNKNOWN
+

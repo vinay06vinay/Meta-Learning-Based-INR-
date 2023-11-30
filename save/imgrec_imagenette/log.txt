@@ -1,0 +1,4 @@
+[11-10 16:36:45] Environment setup done.
+[11-10 16:36:45] Train dataset: len=9469
+[11-10 16:36:45] Test dataset: len=3925
+[11-10 16:36:45] Model: #params=44.5M

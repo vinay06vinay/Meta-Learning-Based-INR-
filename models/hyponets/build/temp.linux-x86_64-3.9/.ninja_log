@@ -1,0 +1,9 @@
+# ninja log v5
+0	1955	1701045346421504054	/home/swarm_researchers/Research/Darshit/personal/828i_project/Shacira/build/temp.linux-x86_64-3.9/wisp/csrc/external/mesh_to_sdf.o	411f501b633bdab1
+1	2312	1701045346777538999	/home/swarm_researchers/Research/Darshit/personal/828i_project/Shacira/build/temp.linux-x86_64-3.9/wisp/csrc/render/find_depth_bound.o	616d47d829597e19
+1	2333	1701045346801541354	/home/swarm_researchers/Research/Darshit/personal/828i_project/Shacira/build/temp.linux-x86_64-3.9/wisp/csrc/ops/hashgrid_interpolate.o	dbf170f05b2563f8
+0	6531	1701045350997948905	/home/swarm_researchers/Research/Darshit/personal/828i_project/Shacira/build/temp.linux-x86_64-3.9/wisp/csrc/render/find_depth_bound_cuda.o	96692b47b31ce323
+1	7573	1701045352042049112	/home/swarm_researchers/Research/Darshit/personal/828i_project/Shacira/build/temp.linux-x86_64-3.9/wisp/csrc/ops/hashgrid_interpolate_cuda.o	ce5956807ef8bbcb
+1	7656	1701045352122056758	/home/swarm_researchers/Research/Darshit/personal/828i_project/Shacira/build/temp.linux-x86_64-3.9/wisp/csrc/ops/hashgrid_interpolate2d_cuda.o	4e4028b20183e02f
+0	8146	1701045352614103779	/home/swarm_researchers/Research/Darshit/personal/828i_project/Shacira/build/temp.linux-x86_64-3.9/wisp/csrc/bindings.o	896489c4e3f59bb6
+0	23178	1701045367643492161	/home/swarm_researchers/Research/Darshit/personal/828i_project/Shacira/build/temp.linux-x86_64-3.9/wisp/csrc/external/mesh2sdf_kernel.o	37b1765409f22f61

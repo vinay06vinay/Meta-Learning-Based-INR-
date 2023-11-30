@@ -1,0 +1,60 @@
+trainer: imgrec_trainer
+train_dataset:
+  name: imgrec_dataset
+  args:
+    imageset:
+      name: celeba
+      args:
+        root_path: data/celeba
+        split: train
+    resize: 178
+  loader:
+    batch_size: 12
+    num_workers: 8
+test_dataset:
+  name: imgrec_dataset
+  args:
+    imageset:
+      name: celeba
+      args:
+        root_path: data/celeba
+        split: test
+    resize: 178
+  loader:
+    batch_size: 12
+    num_workers: 8
+model:
+  name: trans_inr
+  args:
+    tokenizer:
+      name: imgrec_tokenizer
+      args:
+        input_size: 178
+        patch_size: 9
+        padding: 1
+    hyponet:
+      name: hypo_shacira
+      args: {}
+    n_groups: 64
+    transformer_encoder:
+      name: transformer_encoder
+      args:
+        dim: 768
+        depth: 6
+        n_head: 12
+        head_dim: 64
+        ff_dim: 3072
+optimizer:
+  name: adam
+  args:
+    lr: 0.0001
+max_epoch: 30
+eval_epoch: 1
+vis_epoch: 5
+env:
+  exp_name: imgrec_celeba
+  save_dir: save/imgrec_celeba
+  tot_gpus: 1
+  cudnn: false
+  port: '29600'
+  wandb_upload: false
