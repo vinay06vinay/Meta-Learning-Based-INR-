@@ -12,7 +12,8 @@ from models import register
 def init_wb(shape):
     if shape[0] == 1:
         # Change the shape of the weight to (2, shape[1])
-        shape[0] = torch.Size([2])
+        new_shape = torch.Size([2,1])
+        shape = new_shape
     weight = torch.empty(shape[1], shape[0] - 1)
     nn.init.kaiming_uniform_(weight, a=math.sqrt(5))
 
@@ -45,7 +46,8 @@ class TransInr(nn.Module):
             g = min(n_groups, shape[1])
             assert shape[1] % g == 0
             if shape[0] == 1:
-                shape[0] = torch.Size([2])
+                new_shape = torch.Size([2,1])
+                shape = new_shape
             self.wtoken_postfc[name] = nn.Sequential(
                 nn.LayerNorm(dim),
                 nn.Linear(dim, shape[0] - 1),
