@@ -162,11 +162,6 @@ class LatentGrid(BLASGrid):
                 unique_vals, counts = torch.unique(weight, return_counts = True)
                 mapping = torch.zeros((weight.max().item()+1))
                 mapping[unique_vals] = torch.arange(unique_vals.size(0)).to(mapping)
-                # cddvce = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-                print("Weight=",weight.device)
-                weight =weight.cpu()
-                print("Weight=",weight.device)
-                # print("Mapping=",mapping.device)
                 weight = mapping[weight]
                 cdf = torch.cumsum(counts/counts.sum(),dim=0)
                 cdf = torch.cat((torch.Tensor([0.0]).to(cdf),cdf))

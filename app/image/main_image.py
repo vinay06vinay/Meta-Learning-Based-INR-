@@ -39,10 +39,10 @@ def parse_args():
     parser = argparse.ArgumentParser(description='A script for training simple NeRF variants.',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--config', type=str,
-                        help='Path to config file to replace defaults.')
+                        help='Path to config file to replace defaults.', default='app/image/configs/kodak.yaml')
     parser.add_argument('--profile', action='store_true',
                         help='Enable NVTX profiling')
-    parser.add_argument('--seed', type=int,
+    parser.add_argument('--seed', type=int, default=0,
                         help='Random seed. (Not implemented)')
 
     log_group = parser.add_argument_group('logging')
@@ -61,7 +61,7 @@ def parse_args():
 
     data_group = parser.add_argument_group('dataset')
     data_group.add_argument('--dataset-path', type=str,
-                            help='Path to the dataset')
+                            help='Path to the dataset', default='Kodak/')
     data_group.add_argument('--copy-local', action='store_true', default=False,
                             help='Whether to copy the dataset to local disk.')
     data_group.add_argument('--local-path', type=str, default='',
@@ -416,7 +416,6 @@ def load_grid(args, args_dict, dataset: BaseImageDataset) -> BLASGrid:
             )
     else:
         raise ValueError(f"Unknown grid_type argument: {args.grid_type}")
-    print(grid)
     return grid
 
 
@@ -436,7 +435,6 @@ def load_neural_field(args, args_dict, dataset: BaseImageDataset) -> NeuralImage
         hidden_dim=args.hidden_dim,
         num_layers=args.num_layers,
     )
-    print(nef)
     return nef
 
 def load_neural_pipeline(args, args_dict, dataset, device) -> Pipeline:
@@ -451,7 +449,10 @@ def load_neural_pipeline(args, args_dict, dataset, device) -> Pipeline:
         else:
             pipeline.load_state_dict(torch.load(args.pretrained))
     pipeline.to(device)
-    print(pipeline)
+    param_shapes = {}
+    for i, (name, param) in enumerate(pipeline.named_parameters()):
+        param_shapes[f'wb{i}'] = param.shape
+        print(f'wb{i}', param.shape)
     return pipeline
 
 
@@ -492,7 +493,6 @@ def load_trainer(pipeline, train_dataset, validation_dataset, device, scene_stat
                                metrics_only=args.log_metrics_only,
                                enable_amp=not args.disable_amp,
                                use_scaler=not args.disable_scaler)
-    
     return trainer
 
 def set_seed(seed: int):
@@ -510,9 +510,6 @@ if __name__ == "__main__":
     args, args_dict = parse_args()  # Obtain args by priority: cli args > config yaml > argparse defaults
     default_log_setup(args.log_level)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print ("############################DEVICE##############################")
-    print(device)
-    print("#####################################################")
     if args.num_samples>-1:
         args.num_samples = 2 ** args.num_samples
 
@@ -538,7 +535,8 @@ if __name__ == "__main__":
     start_image_idx = 0
     if args.resume and os.path.exists(os.path.join(args.log_dir, args.exp_name, "resume_state.pth")):
         state = torch.load(os.path.join(args.log_dir, args.exp_name, "resume_state.pth"))
-        start_image_idx = state["image_idx"]
+        start_image_idx = state["image_idx"]-1
+
     train_dataset.image_idx = start_image_idx
 
     # Default TensorBoard Logging
@@ -570,11 +568,20 @@ if __name__ == "__main__":
         pipeline = load_neural_pipeline(args=args, args_dict=args_dict, dataset=train_dataset, device=device)
         scene_state = ImageState()   # Joint trainer / app state
         # Create trainer for current image
+        if image_idx == start_image_idx:
+            log.info(f'Info: \n{args_to_log_format(args_dict)}')
         trainer = load_trainer(pipeline=pipeline, train_dataset=train_dataset, validation_dataset=validation_dataset,
                                device=device, scene_state=scene_state, args=args, args_dict=args_dict,
                                writer=writer)
-        if args.resume and os.path.exists(os.path.join(args.log_dir, args.exp_name, "resume_state.pth")):
-            trainer.resume_state()
+        
+        # Only resume state for first image from checkpoint
+        if args.resume and os.path.exists(os.path.join(args.log_dir, args.exp_name, "resume_state.pth")) and image_idx==start_image_idx:
+            # state["epoch"] == args.epochs indicates training is complete for previous image, do not load 
+            if state["epoch"] != args.epochs:
+                trainer.resume_state()
+            if os.path.exists(os.path.join(args.log_dir, args.exp_name, 'metrics.json')):
+                with open(os.path.join(args.log_dir, args.exp_name, 'metrics.json'), 'r') as f:
+                    avg_metrics = json.load(f)
             
         if args.valid_only:
             if args.valid_only_load_path:
@@ -604,19 +611,22 @@ if __name__ == "__main__":
             else:
                 avg_metrics = {k:avg_metrics[k]+[v] for k,v in trainer.best_state.items()}
 
-            avg_metrics = {k:sum(avg_metrics[k])/len(avg_metrics[k]) for k in avg_metrics}
-            log_text = 'Metrics (avg): '
-            for k,v in avg_metrics.items():
-                log_text += f'{k}:{v} |'
-            log.info(log_text)
-
             with open(os.path.join(args.log_dir, args.exp_name, 'metrics.json'), 'w') as f:
                 json.dump(avg_metrics, f)
-        
-            if args.wandb_project is not None:
-                wandb.run.summary({f"Average/{k}": v for k,v in avg_metrics.items()})
 
-            open(os.path.join(trainer.log_dir, 'complete'), "a").close()
+    avg_metrics = {k:sum(avg_metrics[k])/len(avg_metrics[k]) for k in avg_metrics}
+    log_text = 'Metrics (avg): '
+    for k,v in avg_metrics.items():
+        log_text += f'{k}:{v} |'
+    log.info(log_text)
+
+    with open(os.path.join(args.log_dir, args.exp_name, 'metrics.json'), 'w') as f:
+        json.dump(avg_metrics, f)
+
+    if args.wandb_project is not None:
+        wandb.run.summary({f"Average/{k}": v for k,v in avg_metrics.items()})
+
+    open(os.path.join(trainer.log_dir, 'complete'), "a").close()
     if args.copy_local:
         shutil.rmtree(args.dataset_path)
 

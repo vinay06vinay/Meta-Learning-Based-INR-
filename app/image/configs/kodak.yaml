@@ -29,8 +29,8 @@ grid:
     feature_dim: 1
     feature_std: 0.1
     feature_bias: 0.0
-    num_lods: 16
-    codebook_bitwidth: 12
+    num_lods: 24
+    codebook_bitwidth: 11
     tree_type: 'geometric'
     min_grid_res: 16
     max_grid_res: 512
@@ -70,7 +70,7 @@ optimizer:
     weight_decay_decoder: 0.01
 
 trainer:
-    epochs: 120000
+    epochs: 60000
     batch_size: 1
     model_format: 'full'  # If loading a pretrained pipeline, 'full' = torch.load instead of torch.load_state_dict
     valid_every: -1
