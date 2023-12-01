@@ -115,9 +115,7 @@ def hwc_to_chw(img):
     Returns:
         (torch.Tensor): [C,H,W] image.
     """
-    # print(img.shape)
-    img_tensor = torch.from_numpy(img)
-    return img_tensor.permute(2, 0, 1)
+    return img.permute(2, 0, 1)
 
 def chw_to_hwc(img):
     """Converts [C,H,W] to [H,W,C].

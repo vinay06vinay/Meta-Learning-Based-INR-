@@ -95,10 +95,18 @@ class HypoShacira(torch.nn.Module):
         self.param_shapes = dict()
         for i, (name, param) in enumerate(self.pipeline.named_parameters()):
             self.param_shapes[f'wb{i}'] = param.shape
+            print(f'wb{i}', param.shape)
         self.params = None
     def set_params(self, params):
         self.params = params
     def forward(self, x):
-        for i, (name, param) in enumerate(self.pipeline.named_parameters()):
-            param.data = self.params[f'wb{i}'].data
-        return self.pipeline(x)             
+        btch = 12
+        op = []
+        for j in range(btch):
+            for i, (name, param) in enumerate(self.pipeline.named_parameters()):
+                print(f'wb{i}', self.params[f'wb{i}'][j,:,:].shape)
+                param.data = self.params[f'wb{i}'][j,:,:].data
+                if i == 0 and j == 0:
+                    print(param.data)
+            print(self.params[f'wb{0}'][0,:,:].data)
+            op.append(self.pipeline(x))             
