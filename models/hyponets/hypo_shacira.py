@@ -42,7 +42,7 @@ def load_grid() -> BLASGrid:
         resolution_dim=2,
         feature_std=0.1,
         feature_bias=0.0,
-        codebook_bitwidth=12,
+        codebook_bitwidth=6,
         min_grid_res=16,
         max_grid_res=512,
         blas_level=7,
@@ -93,20 +93,37 @@ class HypoShacira(torch.nn.Module):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.pipeline = load_neural_pipeline(self.device)
         self.param_shapes = dict()
-        for i, (name, param) in enumerate(self.pipeline.named_parameters()):
+        i = 0
+        for (name, param) in self.pipeline.named_parameters():
+            # if param.shape == torch.Size([1, 1]) and (name != "nef.grid.latent_dec.layers.0.scale" or name != "nef.grid.latent_dec.layers.0.shift"):
+            #     continue
             self.param_shapes[f'wb{i}'] = param.shape
-            print(f'wb{i}', param.shape)
+            print(f'wb{i}', name, param.shape)
+            i+=1
         self.params = None
     def set_params(self, params):
         self.params = params
     def forward(self, x):
-        btch = 12
-        op = []
+        # print("Xshape= ", x.shape)
+        btch = x.shape[0]
+        # print(btch)
+        op = torch.empty(btch, 178**2, 3, device=self.device)
         for j in range(btch):
-            for i, (name, param) in enumerate(self.pipeline.named_parameters()):
-                print(f'wb{i}', self.params[f'wb{i}'][j,:,:].shape)
-                param.data = self.params[f'wb{i}'][j,:,:].data
-                if i == 0 and j == 0:
-                    print(param.data)
-            print(self.params[f'wb{0}'][0,:,:].data)
-            op.append(self.pipeline(x))             
+            i = 0
+            for (name, param) in self.pipeline.named_parameters():
+                # if param.shape == torch.Size([1, 1]) and ((name != "nef.grid.latent_dec.layers.0.scale") or (name != "nef.grid.latent_dec.layers.0.shift")):
+                #     continue                 
+                param.data = self.params[f'wb{i}'][j, ...].data
+                i+=1
+                # if i == 0 and j == 0:
+                    # print(param.data)
+            # print(self.params[f'wb{0}'][0, ...].data)
+            xin =  x[j,:,:].to(self.device)
+            xin  =  xin.view(-1, 2)
+            # print(xin.shape)
+            op[j, ...] = torch.stack(self.pipeline.nef(coords=xin, channels=["rgb"]), dim=0).to(self.device)
+
+        # Reshape the output tensor to (batch_size, 178, 178, 3)
+        oup = op.view(btch, 178, 178, 3)
+        # print(oup.shape)        
+        return oup             

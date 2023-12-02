@@ -45,12 +45,12 @@ class TransInr(nn.Module):
         self.wtoken_postfc = nn.ModuleDict()
         self.wtoken_rng = dict()
         for name, shape in self.hyponet.param_shapes.items():
-            print("Before shape=", shape)
+            # print("Before shape=", shape)
             if len(shape) == 1:   
                 self.base_params[name] = nn.Parameter(init_wb(shape, is_weight=False))
             else:
                 self.base_params[name] = nn.Parameter(init_wb(shape, is_weight=True))
-            print(self.base_params[name].shape)
+            # print(self.base_params[name].shape)
             shape = self.base_params[name].shape
             g = min(n_groups, shape[1])
             assert shape[1] % g == 0
@@ -74,28 +74,34 @@ class TransInr(nn.Module):
         wtokens = einops.repeat(self.wtokens, 'n d -> b n d', b=B)
         trans_out = self.transformer_encoder(torch.cat([dtokens, wtokens], dim=1))
         trans_out = trans_out[:, -len(self.wtokens):, :]
-
+        
         params = dict()
         for name, shape in self.hyponet.param_shapes.items():
             wb = einops.repeat(self.base_params[name], 'n m -> b n m', b=B)
-            print("wb shape=", wb.shape)
+            # print("wb shape=", wb.shape)
             w, b = wb[:, :-1, :], wb[:, -1:, :]
-            print("w shape=", w.shape)
-            print("b shape=", b.shape)
+            # print("w shape=", w.shape)
+            # print("b shape=", b.shape)
 
             l, r = self.wtoken_rng[name]
-            print("l=", l)
-            print("r=", r)
+            # print("l=", l)
+            # print("r=", r)
             x = self.wtoken_postfc[name](trans_out[:, l: r, :])
-            print("x shape=", x.shape)
+            # print("x shape=", x.shape)
             x = x.transpose(-1, -2) # (B, shape[0] - 1, g)
-            print("x shape=", x.shape)        
+            # print("x shape=", x.shape)        
             w = F.normalize(w * x.repeat(1, 1, w.shape[2] // x.shape[2]), dim=1)
-            print("w shape=", w.shape)
+            # print("w shape=", w.shape)
             wb = torch.cat([w, b], dim=1)
-            print("wb shape=", wb.shape)
+            # print("wb shape=", wb.shape)
+            if wb.shape == torch.Size([B, 3, 1]) or wb.shape == torch.Size([B, 16, 1]):
+                if wb.shape == torch.Size([B, 3, 1]):
+                    wb = wb.reshape(B, 3)
+                elif wb.shape == torch.Size([B, 16, 1]):
+                    wb = wb.reshape(B, 16)
+                # print("wb shape=", wb.shape)
             params[name] = wb
-            print("params[name] shape=", params[name].shape)
+            # print("params[name] shape=", params[name].shape)
 
         self.hyponet.set_params(params)
         return self.hyponet

@@ -18,7 +18,7 @@ def make(model_spec, args=None, load_sd=False):
     else:
         model_args = model_spec['args']
     model = models[model_spec['name']](**model_args)
-    print(model)
+    # print(model)
     
     if load_sd:
         model.load_state_dict(model_spec['sd'])

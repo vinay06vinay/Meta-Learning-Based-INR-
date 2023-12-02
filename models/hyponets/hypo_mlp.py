@@ -49,6 +49,6 @@ class HypoMlp(nn.Module):
             else:
                 x = x + self.out_bias
         x = x.view(B, *query_shape, -1)
-        print(x.shape)
-        print(x)
+        # print(x.shape)
+        # print(x)
         return x
