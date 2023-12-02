@@ -44,6 +44,7 @@ class ImgrecTrainer(BaseTrainer):
         coord = make_coord_grid(gt.shape[-2:], (-1, 1), device=gt.device)
         coord = einops.repeat(coord, 'h w d -> b h w d', b=B)
         pred = hyponet(coord) # b h w 3
+        # pred = torch.nn.Sigmoid()(pred)
         gt = einops.rearrange(gt, 'b c h w -> b h w c')
         mses = ((pred - gt)**2).view(B, -1).mean(dim=-1)
         loss = mses.mean()

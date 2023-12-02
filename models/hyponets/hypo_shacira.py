@@ -42,7 +42,7 @@ def load_grid() -> BLASGrid:
         resolution_dim=2,
         feature_std=0.1,
         feature_bias=0.0,
-        codebook_bitwidth=6,
+        codebook_bitwidth=12,
         min_grid_res=16,
         max_grid_res=512,
         blas_level=7,
@@ -97,12 +97,17 @@ class HypoShacira(torch.nn.Module):
         for (name, param) in self.pipeline.named_parameters():
             # if param.shape == torch.Size([1, 1]) and (name != "nef.grid.latent_dec.layers.0.scale" or name != "nef.grid.latent_dec.layers.0.shift"):
             #     continue
-            self.param_shapes[f'wb{i}'] = param.shape
-            print(f'wb{i}', name, param.shape)
+            if param.shape == torch.Size([47737, 1]):
+                self.param_shapes[f'wb{i}'] = param.shape
+                print(f'wb{i}', name, param.shape)
+            # if i == 0:
+                # print("Inside the constructor hyposhacira: ", param.data)
             i+=1
         self.params = None
     def set_params(self, params):
         self.params = params
+    def get_codebook(self):
+        return self.pipeline.nef.grid.codebook
     def forward(self, x):
         # print("Xshape= ", x.shape)
         btch = x.shape[0]
@@ -112,8 +117,9 @@ class HypoShacira(torch.nn.Module):
             i = 0
             for (name, param) in self.pipeline.named_parameters():
                 # if param.shape == torch.Size([1, 1]) and ((name != "nef.grid.latent_dec.layers.0.scale") or (name != "nef.grid.latent_dec.layers.0.shift")):
-                #     continue                 
-                param.data = self.params[f'wb{i}'][j, ...].data
+                #     continue      
+                if param.shape == torch.Size([47737, 1]):           
+                    param.data = self.params[f'wb{i}'][j, ...].data
                 i+=1
                 # if i == 0 and j == 0:
                     # print(param.data)

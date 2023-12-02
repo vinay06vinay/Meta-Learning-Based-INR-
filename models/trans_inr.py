@@ -9,24 +9,35 @@ import models
 from models import register
 
 
-def init_wb(shape, is_weight=True):
-    if is_weight:
-        # if shape == torch.Size([1, 1]):
-        #     # Change the shape of the weight to (2, shape[1])
-        #     weight = torch.empty(shape[1], shape[0])
-        # else:
-        #     weight = torch.empty(shape[1], shape[0] - 1)
-        weight = torch.empty(shape[1], shape[0])
-        nn.init.kaiming_uniform_(weight, a=math.sqrt(5))
-        return weight.t().detach()
-    else:
-        val = shape[0]
-        bias = torch.empty(val, 1)
-        nn.init.kaiming_uniform_(bias, a=math.sqrt(5))
-        fan_in, _ = nn.init._calculate_fan_in_and_fan_out(bias)
-        bound = 1 / math.sqrt(fan_in) if fan_in > 0 else 1e-5
-        nn.init.uniform_(bias, -bound, bound)
-        return bias.detach()
+# def init_wb(shape, is_weight=True):
+#     if is_weight:
+#         # if shape == torch.Size([1, 1]):
+#         #     # Change the shape of the weight to (2, shape[1])
+#         #     weight = torch.empty(shape[1], shape[0])
+#         # else:
+#         #     weight = torch.empty(shape[1], shape[0] - 1)
+#         weight = torch.empty(shape[1], shape[0])
+#         nn.init.kaiming_uniform_(weight, a=math.sqrt(5))
+#         return weight.t().detach()
+#     else:
+#         val = shape[0]
+#         bias = torch.empty(val, 1)
+#         nn.init.kaiming_uniform_(bias, a=math.sqrt(5))
+#         fan_in, _ = nn.init._calculate_fan_in_and_fan_out(bias)
+#         bound = 1 / math.sqrt(fan_in) if fan_in > 0 else 1e-5
+#         nn.init.uniform_(bias, -bound, bound)
+#         return bias.detach()
+
+def init_wb(shape):
+    weight = torch.empty(shape[1], shape[0] - 1)
+    nn.init.kaiming_uniform_(weight, a=math.sqrt(5))
+
+    bias = torch.empty(shape[1], 1)
+    fan_in, _ = nn.init._calculate_fan_in_and_fan_out(weight)
+    bound = 1 / math.sqrt(fan_in) if fan_in > 0 else 0
+    nn.init.uniform_(bias, -bound, bound)
+
+    return torch.cat([weight, bias], dim=1).t().detach()
 
 
 
@@ -39,31 +50,44 @@ class TransInr(nn.Module):
         self.tokenizer = models.make(tokenizer, args={'dim': dim})
         self.hyponet = models.make(hyponet)
         self.transformer_encoder = models.make(transformer_encoder)
-
+        
         self.base_params = nn.ParameterDict()
         n_wtokens = 0
         self.wtoken_postfc = nn.ModuleDict()
         self.wtoken_rng = dict()
+        self.user_inp = False #True: hypo_mlp; False: hypo_Shacira
         for name, shape in self.hyponet.param_shapes.items():
-            # print("Before shape=", shape)
-            if len(shape) == 1:   
-                self.base_params[name] = nn.Parameter(init_wb(shape, is_weight=False))
+            if self.user_inp:
+                self.base_params[name] = nn.Parameter(init_wb(shape))
             else:
-                self.base_params[name] = nn.Parameter(init_wb(shape, is_weight=True))
-            # print(self.base_params[name].shape)
-            shape = self.base_params[name].shape
+                self.base_params[name] = nn.Parameter(self.hyponet.get_codebook())
+            # print("Before shape=", shape)
+            # if shape != torch.Size([47737, 1]):
+            #     if len(shape) == 1:   
+            #         self.base_params[name] = nn.Parameter(init_wb(shape, is_weight=False))
+            #     else:
+            #         self.base_params[name] = nn.Parameter(init_wb(shape, is_weight=True))
+            # # print(self.base_params[name].shape)
+            # else:
+            #     self.base_params[name] = nn.Parameter(self.hyponet.get_codebook())
+                # print(self.base_params[name])
+            # shape = self.base_params[name].shape
             g = min(n_groups, shape[1])
             assert shape[1] % g == 0
-            if shape == torch.Size([1,1]):
-                self.wtoken_postfc[name] = nn.Sequential(
-                    nn.LayerNorm(dim),
-                    nn.Linear(dim, shape[0]),
-                )
-            else:
-                self.wtoken_postfc[name] = nn.Sequential(
-                    nn.LayerNorm(dim),
-                    nn.Linear(dim, shape[0] - 1),
-                )
+            self.wtoken_postfc[name] = nn.Sequential(
+                nn.LayerNorm(dim),
+                nn.Linear(dim, shape[0] - 1),
+            )
+            # if shape == torch.Size([1,1]):
+            #     self.wtoken_postfc[name] = nn.Sequential(
+            #         nn.LayerNorm(dim),
+            #         nn.Linear(dim, shape[0]),
+            #     )
+            # else:
+            #     self.wtoken_postfc[name] = nn.Sequential(
+            #         nn.LayerNorm(dim),
+            #         nn.Linear(dim, shape[0] - 1),
+            #     )
             self.wtoken_rng[name] = (n_wtokens, n_wtokens + g)
             n_wtokens += g
         self.wtokens = nn.Parameter(torch.randn(n_wtokens, dim))
