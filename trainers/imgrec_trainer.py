@@ -43,6 +43,13 @@ class ImgrecTrainer(BaseTrainer):
 
         coord = make_coord_grid(gt.shape[-2:], (-1, 1), device=gt.device)
         coord = einops.repeat(coord, 'h w d -> b h w d', b=B)
+
+        with torch.no_grad():
+            decoder = hyponet.pipeline.nef.grid.latent_dec
+            latents = hyponet.pipeline.nef.grid.codebook
+            decoder.div = torch.max(torch.abs(latents.min(dim=0,keepdim=True)[0]),\
+                                    torch.abs(latents.max(dim=0,keepdim=True)[0]))
+
         pred = hyponet(coord) # b h w 3
         # pred = torch.nn.Sigmoid()(pred)
         gt = einops.rearrange(gt, 'b c h w -> b h w c')
@@ -87,6 +94,11 @@ class ImgrecTrainer(BaseTrainer):
             self.writer.add_image(tag, imggrid, self.epoch)
         if self.enable_wandb:
             wandb.log({tag: wandb.Image(imggrid)}, step=self.epoch)
+
+        self.save_hyponet(hyponet)
+    
+    def save_hyponet(self, hyponet):
+        torch.save(hyponet.pipeline.state_dict(), "pred_shacira_weights.pth")
 
     def visualize_epoch(self):
         if hasattr(self, 'vislist_train'):
