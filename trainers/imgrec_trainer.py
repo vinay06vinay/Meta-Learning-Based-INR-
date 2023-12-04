@@ -17,6 +17,10 @@ class ImgrecTrainer(BaseTrainer):
 
         def get_vislist(dataset, n_vis=32):
             ids = torch.arange(n_vis) * (len(dataset) // n_vis)
+            if self.cfg.get('eval_model') is not None:
+                ids = [616]
+                torchvision.utils.save_image(dataset[616]['gt'], "test.jpg")
+                assert False
             return [dataset[i] for i in ids]
 
         if hasattr(self, 'train_loader'):
@@ -101,7 +105,10 @@ class ImgrecTrainer(BaseTrainer):
         torch.save(hyponet.pipeline.state_dict(), "pred_shacira_weights.pth")
 
     def visualize_epoch(self):
-        if hasattr(self, 'vislist_train'):
+        if self.cfg.get('eval_model') is not None:
             self._gen_vis_result('vis_train_dataset', self.vislist_train)
-        if hasattr(self, 'vislist_test'):
-            self._gen_vis_result('vis_test_dataset', self.vislist_test)
+        else:
+            if hasattr(self, 'vislist_train'):
+                self._gen_vis_result('vis_train_dataset', self.vislist_train)
+            if hasattr(self, 'vislist_test'):
+                self._gen_vis_result('vis_test_dataset', self.vislist_test)

@@ -139,12 +139,15 @@ class BaseTrainer():
                 pin_memory=True)
             return loader, sampler
 
+
         if cfg.get('train_dataset') is not None:
+            train_shuffle = cfg.get('eval_model') is None
+
             train_dataset = datasets.make(cfg['train_dataset'])
             self.log(f'Train dataset: len={len(train_dataset)}')
             l = cfg['train_dataset']['loader']
             self.train_loader, train_sampler = make_distributed_loader(
-                train_dataset, l['batch_size'], l['num_workers'], shuffle=True, drop_last=True)
+                train_dataset, l['batch_size'], l['num_workers'], shuffle=train_shuffle, drop_last=True)
             self.dist_samplers.append(train_sampler)
 
         if cfg.get('test_dataset') is not None:
