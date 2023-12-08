@@ -46,6 +46,7 @@ class BaseTrainer():
         self.rank = rank
         self.cfg = cfg
         self.is_master = (rank == 0)
+        self.codebk_list = []
 
         env = cfg['env']
         self.tot_gpus = env['tot_gpus']
@@ -102,6 +103,7 @@ class BaseTrainer():
             self.t_data, self.t_model = 0, 0
             self.evaluate_epoch()
             self.visualize_epoch()
+            self.export_codebook()
             self.log(', '.join(self.log_buffer))
         else:
             self.make_model()
@@ -224,9 +226,9 @@ class BaseTrainer():
         if t is None:
             t = self.epoch
         if self.enable_tb:
-            self.writer.add_scalar(k, v, global_step=t)
+            self.writer.add_scalar(k, v)
         if self.enable_wandb:
-            wandb.log({k: v}, step=t)
+            wandb.log({k: v})
 
     def dist_all_reduce_mean_(self, x):
         dist.all_reduce(x, op=dist.ReduceOp.SUM)
@@ -250,7 +252,8 @@ class BaseTrainer():
     def train_epoch(self):
         self.model_ddp.train()
         ave_scalars = dict()
-        self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, patience=1, factor=0.5, verbose=True)
+        # self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, patience=1, factor=0.5, verbose=True)
+        # self.scheduler2 = torch.optim.lr_scheduler.CyclicLR(self.optimizer, base_lr=1e-4, max_lr=1e-7, step_size_down=1, cycle_momentum=False, verbose=True)
         pbar = self.train_loader
         if self.is_master:
             pbar = tqdm(pbar, desc='train', leave=False)
@@ -266,7 +269,8 @@ class BaseTrainer():
             self.writer.add_scalar('training_example_loss', ret['loss'], steps+i)
             self.writer.add_scalar('training_example_psnr', ret['psnr'], steps+i)
             self.average_loss += ret['loss']
-            wandb.log({'train_example_loss': ret['loss'], 'train_example_psnr': ret['psnr']})
+            if self.enable_wandb:
+                wandb.log({'train_example_loss': ret['loss'], 'train_example_psnr': ret['psnr']})
             B = len(next(iter(data.values())))
             for k, v in ret.items():
                 if ave_scalars.get(k) is None:
@@ -276,8 +280,11 @@ class BaseTrainer():
             if self.is_master:
                 pbar.set_description(desc=f'train: loss={ret["loss"]:.4f}')
             t1 = time.time()
-            i+=1
-        self.scheduler.step(self.average_loss/len(pbar))
+        # self.scheduler2.step()
+        i+=1
+        # add grad clipping
+        torch.nn.utils.clip_grad_norm_(self.model_ddp.parameters(), 0.5)
+        # self.scheduler.step(self.average_loss/len(pbar))
         if self.distributed:
             self.sync_ave_scalars_(ave_scalars)
 
@@ -298,6 +305,7 @@ class BaseTrainer():
         ave_scalars = dict()
 
         pbar = self.test_loader
+        
         if self.is_master:
             pbar = tqdm(pbar, desc='eval', leave=False)
 
@@ -305,7 +313,9 @@ class BaseTrainer():
         for data in pbar:
             t0 = time.time()
             self.t_data += t0 - t1
+            
             ret = self.evaluate_step(data)
+            # self.codebk_list.append(codebk)
             self.t_model += time.time() - t0
 
             B = len(next(iter(data.values())))
@@ -313,7 +323,7 @@ class BaseTrainer():
                 if ave_scalars.get(k) is None:
                     ave_scalars[k] = utils.Averager()
                 ave_scalars[k].add(v, n=B)
-
+            
             t1 = time.time()
 
         if self.distributed:
@@ -342,3 +352,13 @@ class BaseTrainer():
             'cfg': self.cfg,
         }
         torch.save(checkpoint, osp.join(self.cfg['env']['save_dir'], filename))
+    def export_codebook(self):
+        # export self.codebk_list to a csv file with each element of the list as a column
+        import csv
+        with open('codebk.csv', 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerows(self.codebk_list[659])
+        
+
+        
+        

@@ -20,19 +20,22 @@ class ImgrecTrainer(BaseTrainer):
             return [dataset[i] for i in ids]
 
         if hasattr(self, 'train_loader'):
+
             self.vislist_train = get_vislist(self.train_loader.dataset)
         if hasattr(self, 'test_loader'):
             self.vislist_test = get_vislist(self.test_loader.dataset)
 
     def adjust_learning_rate(self):
         base_lr = self.cfg['optimizer']['args']['lr']
-        if self.epoch <= round(self.cfg['max_epoch'] * 0.8):
-            lr = base_lr
-        else:
-            lr = base_lr * 0.1
+        print("Base lr is {}".format(base_lr))
+        if self.epoch >= 1 and self.epoch % 4 == 0:
+            base_lr *= 0.5
+        base_lr = max(base_lr, 1e-6)               
+        self.cfg['optimizer']['args']['lr'] =  base_lr
+        print("It is epoch {}, lr is {}".format(self.epoch, base_lr))
         for param_group in self.optimizer.param_groups:
-            param_group['lr'] = lr
-        self.log_temp_scalar('lr', lr)
+            param_group['lr'] = base_lr
+        self.log_temp_scalar('lr', base_lr)
 
     def _iter_step(self, data, is_train):
         data = {k: v.cuda() for k, v in data.items()}
@@ -45,13 +48,19 @@ class ImgrecTrainer(BaseTrainer):
         pred = hyponet(coord) # b h w 3
         # pred = torch.nn.Sigmoid()(pred)
         gt = einops.rearrange(gt, 'b c h w -> b h w c')
-        mses = ((pred - gt)**2).view(B, -1).mean(dim=-1)
+        # mses = ((pred - gt)**2).view(B, -1).mean(dim=-1)
+        # Smooth L1 loss
+        mses = torch.nn.SmoothL1Loss()(pred, gt)
         loss = mses.mean()
         psnr = (-10 * torch.log10(mses)).mean()
         if is_train:
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
+        else:
+            codebk = hyponet.get_codebook()
+            self.codebk_list.append(codebk.detach().cpu())     
+            
 
         return {'loss': loss.item(), 'psnr': psnr.item()}
 
@@ -80,11 +89,11 @@ class ImgrecTrainer(BaseTrainer):
         res = torch.stack(res)
         res = res.detach().cpu()
         imggrid = torchvision.utils.make_grid(res, normalize=True, value_range=pred_value_range)
-
+        
         if self.enable_tb:
             self.writer.add_image(tag, imggrid, self.epoch)
         if self.enable_wandb:
-            wandb.log({tag: wandb.Image(imggrid)}, step=self.epoch)
+            wandb.log({tag: wandb.Image(imggrid)})
 
     def visualize_epoch(self):
         if hasattr(self, 'vislist_train'):

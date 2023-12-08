@@ -30,21 +30,23 @@ def load_grid() -> BLASGrid:
     grid = None
     # Optimization: For octrees based grids, if dataset contains depth info, initialize only cells known to be occupied
     # WARNING: Not implemented/tested for grids other than HashGrid/LatentGrid 
-    conf_latent_decoder = {'ldecode_enabled': True, 'ldecode_type': 'single', 'use_sga': True, 'diff_sampling': True, 'ldecode_matrix': 'sq', 'latent_dim': 1, 'norm': 'max', 'norm_every': 10, 'use_shift': True, 'num_layers_dec': 0, 'hidden_dim_dec': 0, 'activation': 'none', 'final_activation': 'none', 'clamp_weights': 0.0, 'ldec_std': 0.1, 'num_decoders': 2, 'temperature': 0.1, 'decay_period': 0.9, 'alpha_std': 10.0}
-    conf_entropy_reg = {'num_prob_layers': 2, 'entropy_reg': 0.001, 'entropy_reg_end': 0.0001, 'entropy_reg_sched': 'cosine', 'noise_freq': 1}
+    # conf_latent_decoder = {'ldecode_enabled': True, 'ldecode_type': 'single', 'use_sga': True, 'diff_sampling': True, 'ldecode_matrix': 'sq', 'latent_dim': 1, 'norm': 'max', 'norm_every': 10, 'use_shift': True, 'num_layers_dec': 0, 'hidden_dim_dec': 0, 'activation': 'none', 'final_activation': 'none', 'clamp_weights': 0.0, 'ldec_std': 0.1, 'num_decoders': 2, 'temperature': 0.1, 'decay_period': 0.9, 'alpha_std': 10.0}
+    # conf_entropy_reg = {'num_prob_layers': 2, 'entropy_reg': 0.001, 'entropy_reg_end': 0.0001, 'entropy_reg_sched': 'cosine', 'noise_freq': 1}
+    conf_latent_decoder = {'ldecode_enabled': False, 'ldecode_type': 'single', 'use_sga': True, 'diff_sampling': True, 'ldecode_matrix': 'sq', 'latent_dim': 1, 'norm': 'max', 'norm_every': 10, 'use_shift': True, 'num_layers_dec': 0, 'hidden_dim_dec': 0, 'activation': 'none', 'final_activation': 'none', 'clamp_weights': 0.0, 'ldec_std': 0.1, 'num_decoders': 2, 'temperature': 0.1, 'decay_period': 0.9, 'alpha_std': 10.0}
+    conf_entropy_reg = {'num_prob_layers': 2, 'entropy_reg': 0.0, 'entropy_reg_end': 0.0, 'entropy_reg_sched': 'cosine', 'noise_freq': 1}
     # "geometric" - determines the resolution of the grid using geometric sequence initialization from InstantNGP,
 
     grid = LatentGrid.from_geometric(
         feature_dim=1,
         latent_dim=conf_latent_decoder["latent_dim"],
-        num_lods=16,
+        num_lods=44,
         multiscale_type='cat',
         resolution_dim=2,
         feature_std=0.1,
         feature_bias=0.0,
-        codebook_bitwidth=12,
+        codebook_bitwidth=10,
         min_grid_res=16,
-        max_grid_res=512,
+        max_grid_res=128,
         blas_level=7,
         init_grid='uniform',
         conf_latent_decoder=conf_latent_decoder,
@@ -96,22 +98,38 @@ class HypoShacira(torch.nn.Module):
         i = 0
         # self.layers_dict = dict()
         for (name, param) in self.pipeline.named_parameters():
-            # if param.shape == torch.Size([1, 1]) and (name != "nef.grid.latent_dec.layers.0.scale" or name != "nef.grid.latent_dec.layers.0.shift"):
+            # if param.shape == torch.Size([1, 1]) and (name != "nefgridlatent_declayers0scale" or name != "nefgridlatent_declayers0shift"):
             #     continue
-            if param.shape == torch.Size([47737, 1]):
+            # if name == "nefgridlatent_decdiv":
+            #     self.param_shapes[f'nefgridlatent_decdiv'] = param.shape
+            #     print(f'nefgridlatent_decdiv', name, param.shape)
+            # if name == "nefgridlatent_declayers0scale":
+            #     self.param_shapes[f'nefgridlatent_declayers0scale'] = param.shape
+            #     print(f'nefgridlatent_declayers0scale', name, param.shape)
+            # if name == "nefgridlatent_declayers0shift":
+            #     self.param_shapes[f'nefgridlatent_declayers0shift'] = param.shape
+            #     print(f'nefgridlatent_declayers0shift', name, param.shape)
+            print("Name: ", name, "Shape: ", param.shape)
+            # if param.shape == torch.Size([47737, 1]):
+            if param.shape == torch.Size([38300, 1]):
                 self.param_shapes[f'wb{i}'] = param.shape
                 # self.layers_dict[f'wb{i}'] = [name, param, param.shape]
-                print(f'wb{i}', name, param.shape)
+                print(f'Selected for prediction wb{i}', name, param.shape)
             elif param.shape == torch.Size([16, 16]):
                 # shape = param.shape
                 self.param_shapes[f'wb{i}'] = param.shape
                 # self.layers_dict[f'wb{i}'] = [name, param, param.shape]
-                print(f'wb{i}', name, param.shape)
+                print(f'Selected for prediction wb{i}', name, param.shape)
             elif param.shape == torch.Size([3,16]):
                 # shape = param.shape
                 self.param_shapes[f'wb{i}'] = param.shape
                 # self.layers_dict[f'wb{i}'] = [name, param, param.shape]
-                print(f'wb{i}', name, param.shape)
+                print(f'Selected for prediction wb{i}', name, param.shape)
+            elif param.shape == torch.Size([16,44]):
+                # shape = param.shape
+                self.param_shapes[f'wb{i}'] = param.shape
+                # self.layers_dict[f'wb{i}'] = [name, param, param.shape]
+                print(f'Selected for prediction wb{i}', name, param.shape)
             # if i == 0:
                 # print("Inside the constructor hyposhacira: ", param.data)
             i+=1
@@ -130,10 +148,17 @@ class HypoShacira(torch.nn.Module):
         for j in range(btch):
             i = 0
             for (name, param) in self.pipeline.named_parameters():
-                # if param.shape == torch.Size([1, 1]) and ((name != "nef.grid.latent_dec.layers.0.scale") or (name != "nef.grid.latent_dec.layers.0.shift")):
+                # if param.shape == torch.Size([1, 1]) and ((name != "nefgridlatent_declayers0scale") or (name != "nefgridlatent_declayers0shift")):
                 #     continue      
-                if param.shape == torch.Size([47737, 1]) or param.shape == torch.Size([16, 16]) or param.shape == torch.Size([3,16]):           
+                # if param.shape == torch.Size([47737, 1]) or param.shape == torch.Size([16, 16]) or param.shape == torch.Size([3,16]): 
+                if param.shape == torch.Size([38300, 1]) or param.shape == torch.Size([16, 16]) or param.shape == torch.Size([3,16]) or param.shape == torch.Size([16,44]):               
                     param.data = self.params[f'wb{i}'][j, ...].data
+                # if name == "nefgridlatent_decdiv":
+                #     param.data = self.params[f'nefgridlatent_decdiv'][j, ...].data
+                # if name == "nefgridlatent_declayers0scale":
+                #     param.data = self.params[f'nef.grid.latent_dec.layers0scale'][j, ...].data
+                # if name == "nefgridlatent_declayers0shift":
+                #     param.data = self.params[f'nefgridlatent_declayers0shift'][j, ...].data
                 i+=1
                 if i == 0 and j == 0:
                     print(param.data)
@@ -141,7 +166,8 @@ class HypoShacira(torch.nn.Module):
             xin =  x[j,:,:].to(self.device)
             xin  =  xin.view(-1, 2)
             # print(xin.shape)
-            op[j, ...] = torch.stack(self.pipeline.nef(coords=xin, channels=["rgb"]), dim=0).to(self.device)
+            # with torch.no_grad():
+            op[j, ...] = torch.stack(self.pipeline(coords=xin, channels=["rgb"]), dim=0).to(self.device)
 
         # Reshape the output tensor to (batch_size, 178, 178, 3)
         oup = op.view(btch, 178, 178, 3)

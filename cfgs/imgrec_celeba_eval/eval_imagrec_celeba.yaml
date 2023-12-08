@@ -1,0 +1,14 @@
+trainer: imgrec_trainer
+
+test_dataset:
+  name: imgrec_dataset
+  args:
+    imageset:
+      name: celeba
+      args: {root_path: $load_root$/celeba, split: train}
+    resize: 178
+  loader:
+    batch_size: 1
+    num_workers: 8
+
+eval_model: save/imgrec_celeba/epoch-last.pth

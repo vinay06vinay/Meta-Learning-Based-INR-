@@ -60,16 +60,39 @@ class TransInr(nn.Module):
             if self.user_inp:
                 self.base_params[name] = nn.Parameter(init_wb(shape))
             else:
-                if shape == torch.Size([47737,1]):
+                # if shape == torch.Size([47737,1]):
+                if shape == torch.Size([38300,1]):
                     # self.base_params[name] = nn.Parameter(self.hyponet.get_codebook())
+                    shape = torch.Size([766,50])
                     weight = torch.empty(shape[0], shape[1])
-                    self.base_params[name] = nn.Parameter(nn.init.kaiming_uniform_(weight, a=math.sqrt(5), mode='fan_in', nonlinearity='relu'))
+                    # init_vec = torch.empty(shape[0], shape[1])
+                    nn.init.kaiming_uniform_(weight, a=math.sqrt(5))
+                    weight *= 10**6
+                    self.base_params[name] = nn.Parameter(weight)
                 elif shape == torch.Size([16,16]):
                     weight = torch.empty(shape[0], shape[1])
-                    self.base_params[name] = nn.Parameter(nn.init.kaiming_uniform_(weight, a=math.sqrt(5), mode='fan_in', nonlinearity='relu'))
+                    nn.init.kaiming_uniform_(weight, a=math.sqrt(5)) 
+                    weight *= 10**6
+                    self.base_params[name] = nn.Parameter(weight)
                 elif shape == torch.Size([3,16]):
                     weight = torch.empty(shape[0], shape[1])
-                    self.base_params[name] = nn.Parameter(nn.init.kaiming_uniform_(weight, a=math.sqrt(5), mode='fan_in', nonlinearity='relu'))
+                    nn.init.kaiming_uniform_(weight, a=math.sqrt(5)) 
+                    weight *= 10**6
+                    self.base_params[name] = nn.Parameter(weight)
+                elif shape == torch.Size([16,44]):
+                    weight = torch.empty(shape[0], shape[1])
+                    nn.init.kaiming_uniform_(weight, a=math.sqrt(5)) 
+                    weight *= 10**6
+                    self.base_params[name] = nn.Parameter(weight)
+                # # elif name == "nefgridlatent_decdiv":
+                #     weight = torch.empty(shape[0], 1)
+                #     self.base_params[name] = nn.Parameter(nn.init.kaiming_uniform_(weight, a=math.sqrt(5), mode='fan_in', nonlinearity='relu'))
+                # elif name == "nefgridlatent_declayers0scale":
+                #     weight = torch.empty(shape[0], shape[1])
+                #     self.base_params[name] = nn.Parameter(nn.init.kaiming_uniform_(weight, a=math.sqrt(5), mode='fan_in', nonlinearity='relu'))
+                # elif name == "nefgridlatent_declayers0shift":
+                #     weight = torch.empty(shape[0], shape[1])
+                #     self.base_params[name] = nn.Parameter(nn.init.kaiming_uniform_(weight, a=math.sqrt(5), mode='fan_in', nonlinearity='relu'))            
             # print("Before shape=", shape)
             # if shape != torch.Size([47737, 1]):
             #     if len(shape) == 1:   
@@ -112,14 +135,28 @@ class TransInr(nn.Module):
         for name, shape in self.hyponet.param_shapes.items():
             wb = einops.repeat(self.base_params[name], 'n m -> b n m', b=B)
             # print("wb shape=", wb.shape)
-            if wb.shape == torch.Size([B, 47737, 1]) or wb.shape == torch.Size([B, 16, 16]) or wb.shape == torch.Size([B, 3, 16]):
+            # if wb.shape == torch.Size([B, 47737, 1]) or wb.shape == torch.Size([B, 16, 16]) or wb.shape == torch.Size([B, 3, 16]):
+            if wb.shape == torch.Size([B, 766, 50]) or wb.shape == torch.Size([B, 16, 16]) or wb.shape == torch.Size([B, 3, 16]) or wb.shape == torch.Size([B, 16,44]):
                 w = wb
                 l, r = self.wtoken_rng[name]
                 x = self.wtoken_postfc[name](trans_out[:, l: r, :])
                 x = x.transpose(-1, -2) # (B, shape[0] - 1, g)
                 w = F.normalize(w * x.repeat(1, 1, w.shape[2] // x.shape[2]), dim=1)
                 wb = w
+                if wb.shape == torch.Size([B, 766, 50]):
+                    wb = wb.view(B, 38300, 1)
+                    # print(wb.shape)
                 params[name] = wb
+            # elif name == "nefgridlatent_decdiv" or name == "nefgridlatent_declayers0scale" or name == "nefgridlatent_declayers0shift":
+            #     w = wb
+            #     l, r = self.wtoken_rng[name]
+            #     x = self.wtoken_postfc[name](trans_out[:, l: r, :])
+            #     x = x.transpose(-1, -2)
+            #     w = F.normalize(w * x.repeat(1, 1, w.shape[2] // x.shape[2]), dim=1)
+            #     wb = w
+            #     if name == "nefgridlatent_decdiv":
+            #         wb = wb.reshape(1)
+            #     params[name] = wb
             else:
                 w, b = wb[:, :-1, :], wb[:, -1:, :]
                 # print("w shape=", w.shape)
